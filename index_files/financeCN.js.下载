@@ -1,0 +1,383 @@
+/**
+ * 计算考生应支付总金额
+ */
+function computeMoney() {
+	var total = 0;
+	// 单项
+	$("[name='paymentType']:checked").each(function() {
+		total = total + getAmountOfMoney($(this).val());
+	});
+	if (!$('#bmf').attr("checked")) {
+		$("#bmfcount").val(0);
+	}
+	if (!$('#bmfIELTSUKVI').attr("checked")) {
+		$("#bmfcountIELTSUKVI").val(0);
+	}
+	if (!$('#bmfIELTSLS').attr("checked")) {
+		$("#bmfcountIELTSLS").val(0);
+	}
+	if (!$('#zkf').attr("checked")) {
+		$("#zkfcount").val(0);
+	}
+	if (!$('#fyf').attr("checked")) {
+		$("#fyfcount").val(0);
+	}
+	if (!$('#lsfyf').attr("checked")) {
+		$("#lsfyfcount").val(0);
+	}
+	if (!$('#rti').attr("checked")) {
+		$("#rticount").val(0);
+	}
+
+	// 考费差额
+	if ($('#cef').attr("checked")) {
+		total = total + parseInt($('#difference').val());
+		$("#cefchoose").val($('#cefSelect').val());
+	}else{
+		$("#cefchoose").val(0);
+	}
+
+	$('#hiddenAmount').val(total);
+	formatCurrency('total', total);
+}
+
+/**
+ * 根据blance，计算差额
+ */
+function getDifference() {
+	var price = $('#cefSelect').val();
+	if (price > 0) {
+		var balance = $('#balance').val();
+		var difference = 0;
+		if (price - balance > 0) {
+			difference = price - balance;
+		} else if (price - balance == 0) {
+			difference = 0;
+		} else if (price - balance < 0) {
+			difference = 0;
+		}
+		$('#difference').val(difference);
+		formatCurrency('cdfVal', difference);
+	} else {
+		$('#difference').val(0);
+		formatCurrency('cdfVal', 0);
+	}
+	computeMoney();
+}
+
+/**
+ * 得到单项总金额
+ * 
+ * @param paymentType
+ * @returns
+ */
+function getAmountOfMoney(paymentType) {
+	var price = 0;
+	var amount = 0;
+	if (paymentType == 'newOrder') {
+		price = $('#newOrderPrice').val();
+		amount = $('#bmfSelect').val();
+		$("#bmfcount").val(amount);		
+	} else if (paymentType == 'newOrderIELTSUKVI') {
+		price = $('#newOrderPriceIELTSUKVI').val();
+		amount = $('#bmfSelectIELTSUKVI').val();
+		$("#bmfcountIELTSUKVI").val(amount);	
+	} else if (paymentType == 'newOrderIELTSLS') {
+		price = $('#newOrderPriceIELTSLS').val();
+		amount = $('#bmfSelectIELTSLS').val();
+		$("#bmfcountIELTSLS").val(amount);	
+	} else if (paymentType == 'rescheduleOrder') {
+		price = $('#rescheduleOrderPrice').val();
+		amount = $('#zkfSelect').val();
+		$("#zkfcount").val(amount);	
+	} else if (paymentType == 'eorOrder') {
+		price = $('#eorFeePrice').val();
+		amount = $('#fyfSelect').val();
+		$("#fyfcount").val(amount);	
+	} else if (paymentType == 'lseorOrder') {
+		price = $('#lseorFeePrice').val();
+		amount = $('#lsfyfSelect').val();
+		$("#lsfyfcount").val(amount);	
+	} else if (paymentType == 'rtiOrder') {
+		price = $('#rtiFeePrice').val();
+		amount = $('#rtiSelect').val();
+		$("#rticount").val(amount);
+	} 
+	
+	return price * amount;
+}
+
+function submitPayForm(title) {
+	$("#order-pay-dialog-back").click(function() {
+		$("#payDialog").dialog('hide');
+	});
+	$("#order-pay-dialog-succ").click(function() {
+		window.location.href = 'homepage';
+	});
+
+	$("#payDialogLabel").html(title);
+	$("#payDialog").modal();
+	$("#paymentForm").submit();
+}
+
+function pay(title) {
+	if ($("#hiddenAmount").val() == 0) {
+		getAlertDialog("提示信息", "请选择您要充值的款项类别并且待支付总金额不为0。", "确定");
+		return false;
+	}
+
+	$("#dialogLabel").html(title);
+
+	var dialogContent = "<p>";
+	dialogContent += "充值金额为：" + $('#total').text();
+	dialogContent += "</p>";
+	dialogContent += "<p>" + "您确定进行充值吗？" + "</p>";
+	$("#dialogMsg").html(dialogContent);
+	$("#btnCancel").val("取消");
+	$("#btnCommit").val("确定");
+	$("#btnCancel").click(function() {
+		$("#dialog").modal('hide');
+	});
+	$("#btnCommit").click(function() {
+		$(dialog).modal('hide');
+		submitPayForm(title);
+	});
+	$("#btnCancel").focus();
+	$("#dialog").modal();
+}
+
+function pay_tip(title) {
+	if ($("#hiddenAmount").val() == 0) {
+		getAlertDialog("提示信息", "请选择您要充值的款项类别并且待支付总金额不为0。", "确定");
+		return false;
+	}
+
+	$("#dialogLabel").html(title);
+
+	var dialogContent = "<p>由于您的余额不足，请先充值。</p>";
+	dialogContent += "<p>充值金额为：" + $('#total').text();
+	dialogContent += "</p>";
+	dialogContent += "<p>" + "您确定进行充值吗？" + "</p>";
+	$("#dialogMsg").html(dialogContent);
+	$("#btnCancel").val("取消");
+	$("#btnCommit").val("确定");
+	$("#btnCancel").click(function() {
+		$("#dialog").modal('hide');
+	});
+	$("#btnCommit").click(function() {
+		$(dialog).modal('hide');
+		submitPayForm(title);
+	});
+	$("#btnCancel").focus();
+	$("#dialog").modal();
+}
+
+/**
+ * 退款方式选择事件
+ */
+function selCashType(cashType) {
+	$("#reapplyCashGuid").val('');
+	$("#reapplyBankForm").hide();
+	if (cashType == "bank") {
+		$("#cardForm").hide();
+		$("#bankForm").show();
+		formatCurrencyVal('balanceField1', $("#balance").val());
+	} else if (cashType == "card") {
+		$("#bankForm").hide();
+		$("#cardForm").show();
+		formatCurrency('balanceField2', $("#balance").val());
+		$('.moneyFormatField').each(function() {
+			var fee = $(this).text();
+			$(this).text(fee);
+			$(this).formatCurrency({
+				region : 'zh-CN'
+			});
+		});
+	} else {
+		$("#cardForm").hide();
+		$("#bankForm").hide();
+	}
+}
+
+function backFeeChecked(finID) {
+	var checkBoxID = '#finID' + finID;
+	var balance = parseInt($('#balance').val());
+	var aBackFee = parseInt($('#aBackFee' + finID).val());
+	var alreadyBack = calculateSumBackFee();
+
+	if (balance - alreadyBack == 0) {
+		$(checkBoxID).removeAttr("checked");
+		getAlertDialog("提示信息", "已无余额可退款，请不要再选择退款的银行卡。", "确定");
+		return;
+	}
+	if (getCheckedBackFee()) {
+		$(checkBoxID).attr('checked', true);
+		getAlertDialog("提示信息", "请点击重新选择按钮，重新选择退款的银行卡。", "确定");
+		return;
+	}
+	if ($(checkBoxID).attr('checked')) {
+		if (balance - alreadyBack >= aBackFee) {
+			$('#backFee' + finID).val(aBackFee);
+			formatCurrency('backFeeView' + finID, aBackFee);
+		} else {
+			$('#backFee' + finID).val(balance - alreadyBack);
+			formatCurrency('backFeeView' + finID, balance - alreadyBack);
+		}
+	} else {
+		$('#backFeeView' + finID).text('¥0.00');
+		$('#backFee' + finID).val('0');
+	}
+	// 计算余额
+	var nowBack = calculateSumBackFee();
+	$('#remainBalanceField').text((balance - nowBack) / 100).formatCurrency({
+		region : 'zh-CN'
+	});
+}
+
+function getCheckedBackFee() {
+	var returnVal = false;
+	$(':checkbox[name="finID"]:checked').each(
+			function(index) {
+				var finID = $(this).val();
+				if (parseInt($('#backFee' + finID).val()) > 0
+						&& parseInt($('#backFee' + finID).val()) != parseInt($(
+								'#aBackFee' + finID).val())) {
+					returnVal = true;
+				}
+			});
+	return returnVal;
+}
+
+function calculateSumBackFee() {
+	var sumBackFee = 0;
+	$(':checkbox[name="finID"]:checked').each(function(index) {
+		var finID = $(this).val();
+		sumBackFee += parseInt($('#backFee' + finID).val());
+	});
+	return sumBackFee;
+}
+
+/**
+ * 退回原卡
+ */
+function cashMoneyCard() {
+	if ($(':checkbox[name="finID"]:checked').length == 0) {
+		getAlertDialog("提示信息", "请选择要退款的订单号。", "确定");
+		return false;
+	} else {
+		var balance = parseInt($('#balance').val());
+		var alreadyBack = calculateSumBackFee();
+		if (balance != alreadyBack) {
+			getAlertDialog("提示信息", "未退回全部余额，请继续选择。", "确定");
+			return false;
+		}
+	}
+	var dialogContent = "<p>" + "您当前账户余额为："
+			+ $('#balanceField1').val() + "</p>";
+	dialogContent += "<p>" + "提交退款申请后账户余额将被清零，确定提交退款申请吗？" + "</p>";
+	var dialog = getDialog('提示信息', dialogContent);
+	var okButtonName = "确定";
+	var cancelButtonName = "取消";
+	var dialog_buttons = {};
+	dialog_buttons[okButtonName] = function() {
+		dialog.dialog("close");
+		var finIDs = $.map($(':checkbox[name="finID"]:checked'), function(obj) {
+			var finIDVal = $(obj).val();
+			var backFee = $('#backFee' + finIDVal).val();
+			return finIDVal + "," + backFee;
+		});
+		$("#financeIds").val(finIDs.join(","));
+		$("#btn_cashMoneyCard").attr("disabled", true);
+		$.ajax({
+			type : "POST",
+			url : "cashMoneyCard",
+			data : $("#frmCashMoneyCard").serialize(),
+			success : function(msg) {
+				$("#rightRange").html(msg);
+				var code = $("#code").val();
+				if (code == "CASH-OK") {
+					loadPage('showRefundInfo');
+				} else {
+					$("#cashType").val('card');
+					$("input[name=cashType]:eq(1)").attr("checked",'checked');
+					selCashType('card');
+				}
+			}
+		});
+		return false;
+
+	};
+	dialog_buttons[cancelButtonName] = function() {
+		$(this).dialog('close');
+	};
+	dialog.dialog({
+		resizable : false,
+		height : 210,
+		modal : true,
+		open : function() {
+			$(this).siblings('.ui-dialog-buttonpane').find('button:eq(1)')
+					.focus();
+		},
+		buttons : dialog_buttons
+	});
+}
+
+/**
+ * 重新选择订单号
+ */
+function clearSelect() {
+	$(':checkbox[name="finID"]:checked').each(function(index) {
+		$(this).removeAttr("checked");
+		var finID = $(this).val();
+		$('#backFeeView' + finID).text('¥0.00');
+		$('#backFee' + finID).val('0');
+	});
+	$('#remainBalanceField').text($("#balanceField2").text());
+}
+
+/**
+ * 取消未处理的退款申请
+ */
+function cancelCashMoney() {
+	var dialogContent = "<p>" + "取消退款申请后，您申请的退款金额将恢复到您的账户余额。" + "</p>";
+	dialogContent += "<p>" + "您确定要取消未处理的退款申请吗？" + "</p>";
+	var dialog = getDialog("提示信息", dialogContent);
+	var okButtonName = "确定";
+	var cancelButtonName = "取消";
+	var dialog_buttons = {};
+	dialog_buttons[okButtonName] = function() {
+		dialog.dialog("close");
+		$("#del_tta_btn").attr("disabled", true);
+		$.ajax({
+			type : "POST",
+			url : "cancelCashMoney",
+			data : $("#frmCancelCashMoney").serialize(),
+			success : function(msg) {
+				$("#rightRange").html(msg);
+				var code = $("#code").val();
+				getAlertDialog("提示信息", code, "确定");
+				loadPage('showRefundInfo');
+			}
+		});
+		return false;
+	};
+	dialog_buttons[cancelButtonName] = function() {
+		$(this).dialog('close');
+	};
+	dialog.dialog({
+		resizable : false,
+		height : 220,
+		modal : true,
+		open : function() {
+			$(this).siblings('.ui-dialog-buttonpane').find('button:eq(1)')
+					.focus();
+		},
+		buttons : dialog_buttons
+	});
+}
+
+function reapplyCash(reapplyCashGuid,refundAmount) {
+	$("#reapplyBankForm").show();
+	$("#reapplyCashGuid").val(reapplyCashGuid);
+	formatCurrencyVal('reapplyAmount', refundAmount);
+}
